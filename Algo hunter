@@ -3,208 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STALKER | Algo Finance</title>
-    <!-- 1. Load Tailwind CSS (Styling) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 2. Load React (Engine) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- 3. Load Babel (Translator) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- 4. Load Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="bg-black text-slate-300 font-mono">
-    
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        const { createIcons, TrendingUp, TrendingDown, Target, Wallet, Lock, ExternalLink, ShieldCheck, Zap, Bot, Play, Pause } = lucide;
-
-        // --- CONFIGURATION ---
-        // REPLACE THIS LINK WITH YOUR WEALTHSIMPLE LINK!
-        const AFFILIATE_LINK = "https://www.wealthsimple.com/invite"; 
-
-        const ASSETS = [
-            { symbol: 'BTC', name: 'Bitcoin', price: 94500, type: 'crypto' },
-            { symbol: 'ETH', name: 'Ethereum', price: 5200, type: 'crypto' },
-            { symbol: 'SOL', name: 'Solana', price: 210, type: 'crypto' },
-            { symbol: 'NVDA', name: 'Nvidia', price: 145, type: 'stock' },
-            { symbol: 'TSLA', name: 'Tesla', price: 310, type: 'stock' },
-        ];
-
-        const fluctuate = (currentPrice, volatility = 0.002) => {
-            const change = currentPrice * volatility * (Math.random() - 0.5);
-            return Number((currentPrice + change).toFixed(2));
-        };
-
-        // --- MAIN APP COMPONENT ---
-        function App() {
-            const [prices, setPrices] = useState(ASSETS);
-            const [selectedAsset, setSelectedAsset] = useState(ASSETS[0]);
-            const [isBotRunning, setIsBotRunning] = useState(false);
-            const [botFunds, setBotFunds] = useState(10000); 
-            const [botHoldings, setBotHoldings] = useState({});
-            const [tradeHistory, setTradeHistory] = useState([]);
-            const [chartData, setChartData] = useState(Array(40).fill(ASSETS[0].price));
-            const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-            const [tradingMode, setTradingMode] = useState('SIMULATION');
-
-            // Force icons to render after update
-            useEffect(() => {
-                if (window.lucide) window.lucide.createIcons();
-            });
-
-            // Market Heartbeat
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    setPrices(current => current.map(asset => ({
-                        ...asset,
-                        price: fluctuate(asset.price, asset.type === 'crypto' ? 0.005 : 0.002)
-                    })));
-
-                    setChartData(prev => {
-                        const currentPrice = prices.find(p => p.symbol === selectedAsset.symbol)?.price || 0;
-                        return [...prev.slice(1), currentPrice];
-                    });
-
-                    if (isBotRunning && tradingMode === 'SIMULATION') {
-                        runBotLogic();
-                    }
-                }, 1000);
-                return () => clearInterval(interval);
-            }, [selectedAsset, isBotRunning, prices, tradingMode]);
-
-            const runBotLogic = () => {
-                prices.forEach(asset => {
-                    const currentPrice = asset.price;
-                    if (Math.random() > 0.95 && botFunds > currentPrice) {
-                        const amount = 1; 
-                        setBotFunds(prev => prev - currentPrice);
-                        setBotHoldings(prev => ({ ...prev, [asset.symbol]: (prev[asset.symbol] || 0) + amount }));
-                        const newTrade = { id: Date.now(), symbol: asset.symbol, type: 'BUY', price: currentPrice, amount, timestamp: new Date().toLocaleTimeString() };
-                        setTradeHistory(prev => [newTrade, ...prev]);
-                    }
-                    if (botHoldings[asset.symbol] > 0 && Math.random() > 0.90) {
-                        const amount = botHoldings[asset.symbol];
-                        setBotFunds(prev => prev + (currentPrice * amount));
-                        setBotHoldings(prev => ({ ...prev, [asset.symbol]: 0 }));
-                        const newTrade = { id: Date.now(), symbol: asset.symbol, type: 'SELL', price: currentPrice, amount, timestamp: new Date().toLocaleTimeString() };
-                        setTradeHistory(prev => [newTrade, ...prev]);
-                    }
-                });
-            };
-
-            const handleModeSwitch = () => {
-                if (tradingMode === 'SIMULATION') {
-                    setShowUpgradeModal(true);
-                } else {
-                    setTradingMode('SIMULATION');
-                }
-            };
-
-            return (
-                <div className="min-h-screen flex flex-col relative overflow-hidden">
-                    
-                    {/* UPGRADE MODAL */}
-                    {showUpgradeModal && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                            <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
-                                <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white">✕</button>
-                                <div className="text-center mb-6">
-                                    <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30">
-                                        <i data-lucide="lock" class="text-green-500 w-8 h-8"></i>
-                                    </div>
-                                    <h2 className="text-2xl font-bold text-white mb-2">Unlock Live Trading</h2>
-                                    <p className="text-sm text-slate-400">Ready to hunt for real profits?</p>
-                                </div>
-                                
-                                <a href={AFFILIATE_LINK} target="_blank" className="block w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg text-center shadow-[0_0_15px_rgba(34,197,94,0.4)] flex items-center justify-center gap-2">
-                                    Open Account & Get $25 <i data-lucide="external-link" class="w-4 h-4"></i>
-                                </a>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* HEADER */}
-                    <header className="border-b border-slate-800 bg-slate-950/80 p-4 flex justify-between items-center sticky top-0 z-50">
-                        <div className="flex items-center gap-2">
-                            <i data-lucide="target" class="text-green-500 w-6 h-6"></i>
-                            <div>
-                                <h1 className="text-xl font-bold text-white leading-none">$TALKER</h1>
-                                <span className="text-[10px] text-green-600 uppercase tracking-widest">Algo Hunter</span>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-slate-800">
-                           <button onClick={() => setTradingMode('SIMULATION')} className={`px-3 py-1 rounded text-xs font-bold ${tradingMode === 'SIMULATION' ? 'bg-slate-700 text-white' : 'text-slate-500'}`}>SIMULATION</button>
-                           <button onClick={handleModeSwitch} className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1 ${tradingMode === 'LIVE' ? 'bg-green-600 text-white' : 'text-slate-500 hover:text-green-400'}`}>
-                             {tradingMode === 'SIMULATION' && <i data-lucide="lock" class="w-3 h-3"></i>} LIVE
-                           </button>
-                        </div>
-                    </header>
-
-                    {/* DASHBOARD */}
-                    <main className="flex-1 p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
-                        {/* ASSETS */}
-                        <div className="md:col-span-3 space-y-2">
-                            {prices.map(asset => (
-                                <button key={asset.symbol} onClick={() => setSelectedAsset(asset)} className={`w-full p-3 rounded-lg border flex justify-between ${selectedAsset.symbol === asset.symbol ? 'bg-green-950/30 border-green-500/50' : 'bg-slate-900 border-slate-800'}`}>
-                                    <div className="text-left font-bold text-white">{asset.symbol}</div>
-                                    <div className="text-right font-mono text-white">${asset.price.toLocaleString()}</div>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* CHART */}
-                        <div className="md:col-span-6 flex flex-col gap-6">
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl h-64 flex flex-col relative overflow-hidden">
-                                <div className="flex justify-between items-start mb-2 relative z-10">
-                                    <h2 className="text-2xl font-bold text-white">{selectedAsset.symbol}</h2>
-                                    <div className="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded border border-green-500/30 animate-pulse">MARKET OPEN</div>
-                                </div>
-                                <div className="flex-1 flex items-end gap-1 relative z-10 opacity-80">
-                                    {chartData.map((val, i) => {
-                                        const height = ((val - (Math.min(...chartData) * 0.99)) / ((Math.max(...chartData) * 1.01) - (Math.min(...chartData) * 0.99))) * 100;
-                                        return (<div key={i} className={`flex-1 rounded-t-sm ${i > 0 && val >= chartData[i-1] ? 'bg-green-500' : 'bg-red-500'}`} style={{ height: `${Math.max(5, height)}%` }}></div>);
-                                    })}
-                                </div>
-                            </div>
-                            
-                            {/* BOT CONTROLS */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex justify-between items-center">
-                                <div>
-                                    <h3 className="font-bold text-white">Bot Status</h3>
-                                    <p className="text-xs text-slate-500">{isBotRunning ? 'HUNTING DIPS...' : 'IDLE'}</p>
-                                </div>
-                                <button onClick={() => setIsBotRunning(!isBotRunning)} className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold shadow-lg ${isBotRunning ? 'bg-red-500/10 text-red-500 border border-red-500/50' : 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)]'}`}>
-                                    {isBotRunning ? <><i data-lucide="pause" class="w-4 h-4"></i> STOP</> : <><i data-lucide="play" class="w-4 h-4"></i> RUN BOT</>}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* LEDGER */}
-                        <div className="md:col-span-3 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
-                            <div className="p-3 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
-                                <span className="text-xs font-bold text-white uppercase">Bot Ledger</span>
-                                <span className={`text-xs font-bold ${botFunds < 10000 ? 'text-red-400' : 'text-green-400'}`}>${botFunds.toLocaleString()}</span>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-2 space-y-2 max-h-[400px]">
-                                {tradeHistory.map(trade => (
-                                <div key={trade.id} className="bg-black/40 p-2 rounded border border-slate-800 flex justify-between text-xs">
-                                    <span className={trade.type === 'BUY' ? 'text-green-500' : 'text-red-500'}>{trade.type} {trade.symbol}</span>
-                                    <span className="text-slate-300">${trade.price.toLocaleString()}</span>
-                                </div>
-                                ))}
-                            </div>
-                        </div>
-                    </main>
-                </div>
-            );
+    <title>Financial Freedom & Tools</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        p {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #0070f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            box-sizing: border-box;
+        }
+        .btn:hover {
+            background-color: #0051a2;
+        }
+        .btn.wealthsimple { background-color: #ffb900; color: #333; }
+        .btn.questrade { background-color: #23a455; }
+        
+        .footer {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+    <div class="container">
+        <h1>Start Investing</h1>
+        <p>Secure your financial future with these trusted platforms.</p>
+
+        <a href="https://www.wealthsimple.com/invite" target="_blank" class="btn wealthsimple">
+            Sign up for Wealthsimple
+        </a>
+
+        <a href="https://www.questrade.com" target="_blank" class="btn questrade">
+            Sign up for Questrade
+        </a>
+
+        <a href="mailto:your-email@example.com" class="btn">
+            Contact Support
+        </a>
+
+        <div class="footer">
+            <p>&copy; 2025 Financial Tools App</p>
+        </div>
+    </div>
+
 </body>
 </html>
